@@ -4,6 +4,8 @@ import { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { User, Bot, Copy, Check, Sparkles, Image as ImageIcon } from 'lucide-react';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { ChatMessage } from '../lib/ollama';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -15,7 +17,7 @@ interface ChatMessagesProps {
 
 function CodeBlock({ children, className }: { children: string; className?: string }) {
     const [copied, setCopied] = useState(false);
-    const language = className?.replace('language-', '') || '';
+    const language = className?.replace('language-', '') || 'text';
     const { t } = useLanguage();
 
     const handleCopy = async () => {
@@ -36,9 +38,20 @@ function CodeBlock({ children, className }: { children: string; className?: stri
                     {copied ? 'Copied!' : 'Copy'}
                 </button>
             </div>
-            <pre className="overflow-x-auto p-4 bg-zinc-900 dark:bg-zinc-950 text-zinc-100">
-                <code className={`text-sm font-mono ${className}`}>{children}</code>
-            </pre>
+            <SyntaxHighlighter
+                language={language}
+                style={atomOneDark}
+                customStyle={{
+                    margin: 0,
+                    padding: '1rem',
+                    fontSize: '0.875rem',
+                    lineHeight: '1.5',
+                }}
+                showLineNumbers={children.split('\n').length > 10}
+                wrapLines
+            >
+                {children}
+            </SyntaxHighlighter>
         </div>
     );
 }
@@ -52,8 +65,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <div className={`flex gap-4 ${isUser ? (direction === 'rtl' ? 'flex-row' : 'flex-row-reverse') : ''}`}>
             <div
                 className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-md ${isUser
-                        ? 'bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500'
-                        : 'bg-linear-to-br from-zinc-600 to-zinc-800 dark:from-zinc-700 dark:to-zinc-900'
+                    ? 'bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500'
+                    : 'bg-linear-to-br from-zinc-600 to-zinc-800 dark:from-zinc-700 dark:to-zinc-900'
                     }`}
             >
                 {isUser ? (
@@ -88,8 +101,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
                 <div
                     className={`inline-block px-5 py-3.5 rounded-2xl shadow-sm ${isUser
-                            ? 'bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white rounded-tr-md'
-                            : 'bg-card border border-border text-card-foreground rounded-tl-md'
+                        ? 'bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white rounded-tr-md'
+                        : 'bg-card border border-border text-card-foreground rounded-tl-md'
                         }`}
                 >
                     {isUser ? (
