@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { User, Bot, Copy, Check, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { ChatMessage } from '../lib/ollama';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface ChatMessagesProps {
     messages: ChatMessage[];
@@ -15,6 +16,7 @@ interface ChatMessagesProps {
 function CodeBlock({ children, className }: { children: string; className?: string }) {
     const [copied, setCopied] = useState(false);
     const language = className?.replace('language-', '') || '';
+    const { t } = useLanguage();
 
     const handleCopy = async () => {
         await navigator.clipboard.writeText(children);
@@ -42,15 +44,16 @@ function CodeBlock({ children, className }: { children: string; className?: stri
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {
+    const { direction } = useLanguage();
     const isUser = message.role === 'user';
     const hasImages = message.images && message.images.length > 0;
 
     return (
-        <div className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex gap-4 ${isUser ? (direction === 'rtl' ? 'flex-row' : 'flex-row-reverse') : ''}`}>
             <div
                 className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-md ${isUser
-                        ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500'
-                        : 'bg-gradient-to-br from-zinc-600 to-zinc-800 dark:from-zinc-700 dark:to-zinc-900'
+                        ? 'bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500'
+                        : 'bg-linear-to-br from-zinc-600 to-zinc-800 dark:from-zinc-700 dark:to-zinc-900'
                     }`}
             >
                 {isUser ? (
@@ -60,10 +63,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 )}
             </div>
 
-            <div className={`flex-1 max-w-[85%] ${isUser ? 'flex flex-col items-end' : ''}`}>
+            <div className={`flex-1 max-w-[85%] ${isUser ? (direction === 'rtl' ? 'flex flex-col items-start' : 'flex flex-col items-end') : ''}`}>
                 {/* Display images if present */}
                 {hasImages && (
-                    <div className={`flex flex-wrap gap-2 mb-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex flex-wrap gap-2 mb-2 ${isUser ? (direction === 'rtl' ? 'justify-start' : 'justify-end') : 'justify-start'}`}>
                         {message.images!.map((base64, index) => (
                             <div
                                 key={index}
@@ -85,14 +88,14 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
                 <div
                     className={`inline-block px-5 py-3.5 rounded-2xl shadow-sm ${isUser
-                            ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white rounded-tr-md'
+                            ? 'bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white rounded-tr-md'
                             : 'bg-card border border-border text-card-foreground rounded-tl-md'
                         }`}
                 >
                     {isUser ? (
                         <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
                     ) : (
-                        <div className="prose prose-sm dark:prose-invert max-w-none prose-pre:p-0 prose-pre:bg-transparent prose-p:leading-relaxed prose-headings:font-semibold">
+                        <div className={`prose prose-sm dark:prose-invert max-w-none prose-pre:p-0 prose-pre:bg-transparent prose-p:leading-relaxed prose-headings:font-semibold ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
@@ -128,13 +131,14 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
 export function ChatMessages({ messages, isLoading, onSuggestionClick }: ChatMessagesProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { t, direction } = useLanguage();
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     const suggestions = [
-        { text: 'Explain quantum computing', icon: '🔬' },
+        { text: t('chat.welcome'), icon: '🤖' },
         { text: 'Write a Python function', icon: '🐍' },
         { text: 'Help me debug my code', icon: '🐛' },
         { text: 'Create a React component', icon: '⚛️' },
@@ -144,19 +148,19 @@ export function ChatMessages({ messages, isLoading, onSuggestionClick }: ChatMes
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-12">
                 <div className="relative mb-8">
-                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center shadow-2xl glow">
+                    <div className="w-24 h-24 rounded-3xl bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center shadow-2xl glow">
                         <Sparkles className="w-12 h-12 text-white" />
                     </div>
-                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center shadow-lg">
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-linear-to-br from-emerald-400 to-cyan-400 flex items-center justify-center shadow-lg">
                         <Bot className="w-4 h-4 text-white" />
                     </div>
                 </div>
 
-                <h2 className="text-3xl font-bold mb-3 gradient-text">
-                    How can I help you today?
+                <h2 className={`text-3xl font-bold mb-3 ${direction === 'rtl' ? 'gradient-text-rtl' : 'gradient-text'}`}>
+                    {t('chat.welcome')}
                 </h2>
-                <p className="text-muted-foreground max-w-md text-lg">
-                    Start a conversation with your Ollama models. Ask questions, generate code, or explore ideas.
+                <p className={`text-muted-foreground max-w-md text-lg ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                    {t('chat.description')}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-10 max-w-xl w-full">
@@ -184,7 +188,7 @@ export function ChatMessages({ messages, isLoading, onSuggestionClick }: ChatMes
 
                 {isLoading && messages[messages.length - 1]?.role === 'user' && (
                     <div className="flex gap-4">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-600 to-zinc-800 dark:from-zinc-700 dark:to-zinc-900 flex items-center justify-center shadow-md">
+                        <div className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-zinc-600 to-zinc-800 dark:from-zinc-700 dark:to-zinc-900 flex items-center justify-center shadow-md">
                             <Bot className="w-5 h-5 text-white" />
                         </div>
                         <div className="bg-card border border-border rounded-2xl rounded-tl-md px-5 py-4 shadow-sm">

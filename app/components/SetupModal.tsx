@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Server, Check, AlertCircle, RefreshCw, Sparkles, ExternalLink } from 'lucide-react';
 import { getBaseUrl, setBaseUrl, checkConnection, hasBaseUrl } from '../lib/ollama';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface SetupModalProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
     const [url, setUrl] = useState('');
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
+    const { t } = useLanguage();
 
     const handleTest = async () => {
         if (!url.trim()) {
@@ -54,9 +56,9 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-6 shadow-xl glow">
                         <Sparkles className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold mb-2">Welcome to Ollama UI</h1>
+                    <h1 className="text-2xl font-bold mb-2">{t('setup.welcome')}</h1>
                     <p className="text-muted-foreground">
-                        Connect to your Ollama server to get started
+                        {t('setup.subtitle')}
                     </p>
                 </div>
 
@@ -66,7 +68,7 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
                     <div className="space-y-3">
                         <label className="flex items-center gap-2 text-sm font-semibold">
                             <Server className="w-4 h-4 text-primary" />
-                            Ollama Server URL
+                            {t('setup.urlLabel')}
                         </label>
                         <div className="flex gap-2">
                             <input
@@ -77,7 +79,7 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
                                     setTestStatus('idle');
                                     setErrorMessage('');
                                 }}
-                                placeholder="http://localhost:11434"
+                                placeholder={t('setup.placeholder')}
                                 className="flex-1 px-4 py-3.5 bg-secondary border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                                 onKeyDown={(e) => e.key === 'Enter' && handleTest()}
                             />
@@ -85,10 +87,10 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
                                 onClick={handleTest}
                                 disabled={testStatus === 'testing' || !url.trim()}
                                 className={`px-4 py-3.5 rounded-xl transition-all font-medium flex items-center gap-2 ${testStatus === 'success'
-                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                                        : testStatus === 'error'
-                                            ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30'
-                                            : 'bg-secondary hover:bg-secondary/80 border border-border'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                    : testStatus === 'error'
+                                        ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30'
+                                        : 'bg-secondary hover:bg-secondary/80 border border-border'
                                     } disabled:opacity-50`}
                             >
                                 {testStatus === 'testing' ? (
@@ -109,7 +111,7 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
 
                         {testStatus === 'success' && (
                             <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                                ✓ Connected successfully!
+                                {t('setup.connected')}
                             </p>
                         )}
                     </div>
@@ -118,20 +120,20 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
                     <div className="p-5 bg-gradient-to-br from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 rounded-2xl border border-primary/20">
                         <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                             <span className="text-lg">🚀</span>
-                            Quick Setup
+                            {t('setup.guide')}
                         </h3>
                         <ol className="text-sm text-muted-foreground space-y-2">
                             <li className="flex items-start gap-2">
                                 <span className="font-bold text-primary">1.</span>
-                                <span>Install Ollama from <a href="https://ollama.ai" target="_blank" rel="noopener" className="text-primary hover:underline inline-flex items-center gap-1">ollama.ai <ExternalLink className="w-3 h-3" /></a></span>
+                                <span>{t('setup.install')}</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="font-bold text-primary">2.</span>
-                                <span>Run <code className="px-2 py-0.5 bg-secondary rounded font-mono text-xs">ollama serve</code></span>
+                                <span>{t('setup.run')}</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="font-bold text-primary">3.</span>
-                                <span>Enter URL above (default: <code className="px-2 py-0.5 bg-secondary rounded font-mono text-xs">http://localhost:11434</code>)</span>
+                                <span>{t('setup.enterUrl')}</span>
                             </li>
                         </ol>
                     </div>
@@ -144,7 +146,7 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
                         disabled={testStatus === 'testing'}
                         className="w-full py-4 text-base font-semibold bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
                     >
-                        {testStatus === 'success' ? 'Get Started' : 'Test & Connect'}
+                        {testStatus === 'success' ? t('setup.startButton') : t('setup.testButton')}
                     </button>
                 </div>
             </div>

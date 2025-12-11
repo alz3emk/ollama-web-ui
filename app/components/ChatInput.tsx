@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
 import { Send, Loader2, Paperclip, X, Image as ImageIcon, FileText } from 'lucide-react';
 import { fileToBase64, isVisionModel } from '../lib/ollama';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface UploadedFile {
     file: File;
@@ -28,6 +29,7 @@ export function ChatInput({
     const [isDragging, setIsDragging] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { t, direction } = useLanguage();
 
     const isVision = isVisionModel(selectedModel);
 
@@ -141,7 +143,7 @@ export function ChatInput({
                 {isVision && (
                     <div className="flex items-center gap-2 text-xs text-violet-600 dark:text-violet-400 bg-violet-500/10 px-3 py-2 rounded-lg">
                         <ImageIcon className="w-4 h-4" />
-                        <span>Vision model detected - you can upload images for analysis</span>
+                        <span>{t('chat.visionDetected')}</span>
                     </div>
                 )}
 
@@ -151,7 +153,7 @@ export function ChatInput({
                         className={`relative flex items-end bg-card rounded-2xl border transition-all shadow-sm hover:shadow-md ${isDragging
                             ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
                             : 'border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
-                            }`}
+                            } ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
@@ -184,15 +186,16 @@ export function ChatInput({
                             onKeyDown={handleKeyDown}
                             placeholder={
                                 !isConnected
-                                    ? 'Connect to Ollama to start chatting...'
+                                    ? t('chat.noConnection')
                                     : uploadedFiles.length > 0
-                                        ? 'Add a message or send to analyze image...'
-                                        : 'Message Ollama... (Shift+Enter for new line)'
+                                        ? t('chat.placeholderWithImage')
+                                        : t('chat.placeholder')
                             }
                             disabled={!isConnected || isLoading}
                             rows={1}
-                            className="flex-1 py-4 bg-transparent resize-none focus:outline-none disabled:opacity-50 text-base placeholder:text-muted-foreground"
+                            className={`flex-1 py-4 bg-transparent resize-none focus:outline-none disabled:opacity-50 text-base placeholder:text-muted-foreground ${direction === 'rtl' ? 'text-right' : 'text-left'}`}
                             style={{ minHeight: '56px', maxHeight: '200px' }}
+                            dir={direction}
                         />
                         <div className="p-2">
                             <button
@@ -214,16 +217,15 @@ export function ChatInput({
                         <div className="absolute inset-0 flex items-center justify-center bg-primary/10 backdrop-blur-sm rounded-2xl border-2 border-dashed border-primary pointer-events-none">
                             <div className="text-center">
                                 <ImageIcon className="w-10 h-10 text-primary mx-auto mb-2" />
-                                <p className="font-medium text-primary">Drop images here</p>
+                                <p className="font-medium text-primary">{t('image.dropHere')}</p>
                             </div>
                         </div>
                     )}
                 </form>
 
                 {/* Footer text */}
-                <p className="text-xs text-center text-muted-foreground">
-                    Powered by <span className="font-semibold text-primary">Ollama</span> •
-                    {isVision ? ' Vision model - drag & drop or click 📎 to upload images' : ' Responses are generated locally'}
+                <p className={`text-xs text-center text-muted-foreground ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                    {isVision ? t('chat.visionPowered') : t('chat.powered')}
                 </p>
             </div>
         </div>
