@@ -224,8 +224,8 @@ export function ChatInput({
                 </form>
 
                 {/* Footer text */}
-                <p className={`text-xs text-center text-muted-foreground ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
-                    {isVision ? t('chat.visionPowered') : t('chat.powered')}
+                <p className={`text-xs !text-center text-muted-foreground ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+                    Developed with ❤️ by   <a className='font-bold' href='https://habsi.net/' target='_blank' rel='noopener noreferrer'>Habsi</a>
                 </p>
             </div>
         </div>
