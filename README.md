@@ -136,13 +136,49 @@ npm start
 3. **Pull a model**: `ollama pull llama2` or `ollama pull llava` (for vision)
 4. **Open the app** and enter your Ollama URL
 
-### CORS Configuration
+### ✅ CORS Configuration (Fixed!)
 
-If running Ollama on a different machine, enable CORS:
+**This app now includes a built-in CORS proxy!** All requests are routed through backend endpoints, so you don't need to manually configure CORS on Ollama.
+
+#### For Local Development:
+```bash
+# Just start Ollama normally
+ollama serve
+
+# The app will automatically proxy requests through the backend
+# No CORS configuration needed!
+```
+
+#### For Remote Ollama Server:
+```bash
+# Option 1: Set environment variable (Recommended)
+NEXT_PUBLIC_OLLAMA_URL=http://your-ollama-server:11434 npm run dev
+
+# Option 2: Or in Docker:
+docker run -e NEXT_PUBLIC_OLLAMA_URL=http://your-ollama-server:11434 -p 3000:3000 ollama-web-ui
+
+# Option 3: Or in Docker Compose (.env file):
+OLLAMA_URL=http://your-ollama-server:11434 docker-compose up -d
+```
+
+#### If You Still Get CORS Errors:
+If you're running Ollama on a different machine and still experience CORS issues, enable CORS on Ollama:
 
 ```bash
+# Linux/Mac:
 OLLAMA_ORIGINS=* ollama serve
+
+# Windows (PowerShell):
+$env:OLLAMA_ORIGINS='*'; ollama serve
+
+# Or permanently set in environment variables
 ```
+
+#### How It Works:
+- **Before**: Browser → Ollama (CORS blocked ❌)
+- **After**: Browser → Next.js Backend → Ollama (No CORS issues ✅)
+
+The app uses Next.js API routes to proxy all Ollama requests, bypassing browser CORS restrictions entirely.
 
 ---
 

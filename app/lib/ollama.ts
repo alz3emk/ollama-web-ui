@@ -55,7 +55,8 @@ export function hasEnvUrl(): boolean {
 
 export async function fetchModels(): Promise<OllamaModel[]> {
     try {
-        const response = await fetch(`${getBaseUrl()}/api/tags`);
+        // Use the backend proxy endpoint instead of direct Ollama request
+        const response = await fetch('/api/ollama/tags');
         if (!response.ok) throw new Error('Failed to fetch models');
         const data = await response.json();
         return data.models || [];
@@ -97,7 +98,8 @@ export async function* streamChat(
         ...(msg.images && msg.images.length > 0 ? { images: msg.images } : {}),
     }));
 
-    const response = await fetch(`${getBaseUrl()}/api/chat`, {
+    // Use the backend proxy endpoint instead of direct Ollama request
+    const response = await fetch('/api/ollama/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -140,7 +142,8 @@ export async function* streamChat(
 
 export async function checkConnection(): Promise<boolean> {
     try {
-        const response = await fetch(`${getBaseUrl()}/api/tags`);
+        // Use the backend proxy endpoint instead of direct Ollama request
+        const response = await fetch('/api/ollama/tags');
         return response.ok;
     } catch {
         return false;
