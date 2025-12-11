@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Server, Check, AlertCircle, RefreshCw, Sparkles, ExternalLink } from 'lucide-react';
-import { getBaseUrl, setBaseUrl, checkConnection, hasBaseUrl } from '../lib/ollama';
+import { useState } from 'react';
+import { Server, Check, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { setBaseUrl } from '../lib/ollama';
 import { useLanguage } from '../hooks/useLanguage';
 
 interface SetupModalProps {
@@ -25,16 +25,30 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
         setTestStatus('testing');
         setErrorMessage('');
 
-        // Temporarily set the URL to test it
-        setBaseUrl(url.trim().replace(/\/$/, '')); // Remove trailing slash
+        try {
+            // Test the connection through the backend proxy
+            // This validates that the backend can reach the Ollama server
+            const response = await fetch('/api/ollama/tags');
+            
+            if (!response.ok) {
+                const data = await response.json();
+                setTestStatus('error');
+                setErrorMessage(data.error || 'Failed to connect through proxy. Make sure the URL is configured on the backend.');
+                return;
+            }
 
-        const connected = await checkConnection();
+            const data = await response.json();
+            
+            if (data.error) {
+                setTestStatus('error');
+                setErrorMessage(data.error);
+                return;
+            }
 
-        if (connected) {
             setTestStatus('success');
-        } else {
+        } catch (error: any) {
             setTestStatus('error');
-            setErrorMessage('Could not connect to Ollama server. Make sure the URL is correct and the server is running.');
+            setErrorMessage('Connection test failed. Make sure the backend can reach the Ollama server.');
         }
     };
 
@@ -43,6 +57,8 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
             await handleTest();
             return;
         }
+        // Store the URL for display only
+        setBaseUrl(url.trim().replace(/\/$/, ''));
         onComplete();
     };
 

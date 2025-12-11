@@ -21,17 +21,15 @@ export interface ChatResponse {
 
 const STORAGE_KEY = 'ollama_base_url';
 
-// Get URL from environment variable (set at build time or runtime)
-function getEnvUrl(): string {
-    return process.env.NEXT_PUBLIC_OLLAMA_URL || '';
-}
-
+// NOTE: The actual Ollama URL is stored on the BACKEND ONLY
+// This is ONLY used for display purposes in the UI (settings, etc.)
+// All actual requests go through the /api/ollama/* proxy endpoints
 export function getBaseUrl(): string {
     if (typeof window !== 'undefined') {
-        // First check localStorage, then fall back to env variable
-        return localStorage.getItem(STORAGE_KEY) || getEnvUrl();
+        // This is just for display/reference - NOT used for actual requests
+        return localStorage.getItem(STORAGE_KEY) || 'http://localhost:11434';
     }
-    return getEnvUrl();
+    return 'http://localhost:11434';
 }
 
 export function setBaseUrl(url: string): void {
@@ -41,21 +39,18 @@ export function setBaseUrl(url: string): void {
 }
 
 export function hasBaseUrl(): boolean {
-    if (typeof window !== 'undefined') {
-        // Has URL if either localStorage or env variable is set
-        return !!(localStorage.getItem(STORAGE_KEY) || getEnvUrl());
-    }
-    return !!getEnvUrl();
+    // Always return true - the backend handles the URL via environment variables
+    return true;
 }
 
-// Check if URL was provided via environment variable
 export function hasEnvUrl(): boolean {
-    return !!getEnvUrl();
+    // Always return true - the backend handles the URL via environment variables
+    return true;
 }
 
 export async function fetchModels(): Promise<OllamaModel[]> {
     try {
-        // Use the backend proxy endpoint instead of direct Ollama request
+        // ALWAYS use the backend proxy endpoint
         const response = await fetch('/api/ollama/tags');
         if (!response.ok) throw new Error('Failed to fetch models');
         const data = await response.json();
@@ -98,7 +93,7 @@ export async function* streamChat(
         ...(msg.images && msg.images.length > 0 ? { images: msg.images } : {}),
     }));
 
-    // Use the backend proxy endpoint instead of direct Ollama request
+    // ALWAYS use the backend proxy endpoint
     const response = await fetch('/api/ollama/chat', {
         method: 'POST',
         headers: {
@@ -142,7 +137,7 @@ export async function* streamChat(
 
 export async function checkConnection(): Promise<boolean> {
     try {
-        // Use the backend proxy endpoint instead of direct Ollama request
+        // ALWAYS use the backend proxy endpoint
         const response = await fetch('/api/ollama/tags');
         return response.ok;
     } catch {
