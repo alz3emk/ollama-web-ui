@@ -77,7 +77,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ollama-web-ui.git
+git clone https://github.com/alz3emk/ollama-web-ui.git
 cd ollama-web-ui
 
 # Start the application
