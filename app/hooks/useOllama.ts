@@ -28,7 +28,7 @@ const MAX_STORED_CONVERSATIONS = 50;
 
 export function useOllama() {
     const [models, setModels] = useState<OllamaModel[]>([]);
-    const [selectedModel, setSelectedModel] = useState<string>('');
+    const [selectedModels, setSelectedModels] = useState<string[]>([]);
     const [isConnected, setIsConnected] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -36,10 +36,18 @@ export function useOllama() {
 
     // Load saved data from localStorage
     useEffect(() => {
-        const savedModel = localStorage.getItem('ollama_selected_model');
+        const savedModels = localStorage.getItem('ollama_selected_models');
         const savedConversations = localStorage.getItem('ollama_conversations');
 
-        if (savedModel) setSelectedModel(savedModel);
+        if (savedModels) {
+            try {
+                const parsed = JSON.parse(savedModels);
+                console.log('Loaded saved models:', parsed);
+                setSelectedModels(parsed);
+            } catch (e) {
+                console.error('Failed to parse saved models:', e);
+            }
+        }
         if (savedConversations) {
             try {
                 const parsed = JSON.parse(savedConversations);
@@ -74,26 +82,34 @@ export function useOllama() {
         }
     }, [conversations]);
 
-    // Save selected model
+    // Save selected models
     useEffect(() => {
-        if (selectedModel) {
-            localStorage.setItem('ollama_selected_model', selectedModel);
+        if (selectedModels.length > 0) {
+            console.log('Saving selected models:', selectedModels);
+            localStorage.setItem('ollama_selected_models', JSON.stringify(selectedModels));
         }
-    }, [selectedModel]);
+    }, [selectedModels]);
 
     const loadModels = useCallback(async () => {
+        console.log('Loading models...');
         const connected = await checkConnection();
         setIsConnected(connected);
 
         if (connected) {
             const modelList = await fetchModels();
+            console.log('Fetched models:', modelList);
             setModels(modelList);
 
-            if (modelList.length > 0 && !selectedModel) {
-                setSelectedModel(modelList[0].name);
-            }
+            // Only set default model if none are selected yet
+            setSelectedModels(prev => {
+                if (prev.length === 0 && modelList.length > 0) {
+                    console.log('Setting default model:', modelList[0].name);
+                    return [modelList[0].name];
+                }
+                return prev;
+            });
         }
-    }, [selectedModel]);
+    }, []);
 
     useEffect(() => {
         loadModels();
@@ -104,16 +120,33 @@ export function useOllama() {
             id: Date.now().toString(),
             title: 'New Chat',
             messages: [],
-            model: selectedModel,
+            model: selectedModels.join(', ') || 'no-model',
             createdAt: new Date(),
         };
         setConversations(prev => [newConversation, ...prev]);
         setCurrentConversation(newConversation);
         return newConversation;
-    }, [selectedModel]);
+    }, [selectedModels]);
+
+    const toggleModelSelection = useCallback((modelName: string) => {
+        console.log('Toggling model selection:', modelName);
+        setSelectedModels(prev => {
+            if (prev.includes(modelName)) {
+                // Remove model
+                const updated = prev.filter(m => m !== modelName);
+                console.log('Removed model, now selected:', updated);
+                return updated;
+            } else {
+                // Add model
+                const updated = [...prev, modelName];
+                console.log('Added model, now selected:', updated);
+                return updated;
+            }
+        });
+    }, []);
 
     const sendMessage = useCallback(async (content: string, images?: string[]) => {
-        if (!selectedModel || (!content.trim() && !images?.length)) return;
+        if (selectedModels.length === 0 || (!content.trim() && !images?.length)) return;
 
         let conversation = currentConversation;
         if (!conversation) {
@@ -142,51 +175,75 @@ export function useOllama() {
         );
 
         setIsLoading(true);
-        let assistantContent = '';
 
         try {
-            const assistantMessage: ChatMessage = { role: 'assistant', content: '' };
+            // Send message to each selected model
+            for (const model of selectedModels) {
+                let assistantContent = '';
 
-            // Add empty assistant message that will be updated
-            const messagesWithAssistant = [...updatedMessages, assistantMessage];
+                try {
+                    let messagesForStreaming = [...updatedMessages];
 
-            for await (const chunk of streamChat(selectedModel, updatedMessages)) {
-                assistantContent += chunk;
+                    for await (const chunk of streamChat(model, messagesForStreaming)) {
+                        assistantContent += chunk;
 
-                // Update the assistant message content in real-time
-                const streamingConversation: Conversation = {
-                    ...updatedConversation,
-                    messages: [
-                        ...updatedMessages,
-                        { role: 'assistant', content: assistantContent }
-                    ],
-                };
+                        // Update the conversation with the streaming response from this model
+                        setCurrentConversation(prev => {
+                            if (!prev) return prev;
 
-                setCurrentConversation(streamingConversation);
-                setConversations(prev =>
-                    prev.map(c => c.id === streamingConversation.id ? streamingConversation : c)
-                );
+                            const lastMessage = prev.messages[prev.messages.length - 1];
+                            let newMessages = [...prev.messages];
+
+                            // If the last message is from this model's assistant, update it
+                            if (lastMessage?.role === 'assistant' && lastMessage?.model === model) {
+                                newMessages[newMessages.length - 1] = {
+                                    ...lastMessage,
+                                    content: assistantContent
+                                };
+                            } else {
+                                // Add new assistant message
+                                newMessages.push({
+                                    role: 'assistant',
+                                    content: assistantContent,
+                                    model
+                                });
+                            }
+
+                            const streamingConversation: Conversation = {
+                                ...prev,
+                                messages: newMessages
+                            };
+
+                            return streamingConversation;
+                        });
+
+                        setConversations(prev =>
+                            prev.map(c => c.id === conversation.id ? {
+                                ...c,
+                                messages: c.id === conversation.id ? c.messages : c.messages
+                            } : c)
+                        );
+                    }
+                } catch (error) {
+                    console.error(`Error from model ${model}:`, error);
+                    assistantContent = `Sorry, there was an error with ${model}. Please check your Ollama connection.`;
+
+                    setCurrentConversation(prev => {
+                        if (!prev) return prev;
+                        return {
+                            ...prev,
+                            messages: [
+                                ...prev.messages,
+                                { role: 'assistant', content: assistantContent, model }
+                            ]
+                        };
+                    });
+                }
             }
-        } catch (error) {
-            console.error('Error sending message:', error);
-            assistantContent = 'Sorry, there was an error processing your request. Please check your Ollama connection.';
-
-            const errorConversation: Conversation = {
-                ...updatedConversation,
-                messages: [
-                    ...updatedMessages,
-                    { role: 'assistant', content: assistantContent }
-                ],
-            };
-
-            setCurrentConversation(errorConversation);
-            setConversations(prev =>
-                prev.map(c => c.id === errorConversation.id ? errorConversation : c)
-            );
         } finally {
             setIsLoading(false);
         }
-    }, [selectedModel, currentConversation, createNewConversation]);
+    }, [selectedModels, currentConversation, createNewConversation]);
 
     const deleteConversation = useCallback((id: string) => {
         setConversations(prev => prev.filter(c => c.id !== id));
@@ -203,8 +260,9 @@ export function useOllama() {
 
     return {
         models,
-        selectedModel,
-        setSelectedModel,
+        selectedModels,
+        setSelectedModels,
+        toggleModelSelection,
         isConnected,
         isLoading,
         conversations,

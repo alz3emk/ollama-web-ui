@@ -7,7 +7,8 @@ import { ChatMessages } from './components/ChatMessages';
 import { ChatInput } from './components/ChatInput';
 import { SettingsModal } from './components/SettingsModal';
 import { SetupModal } from './components/SetupModal';
-import { ChevronDown } from 'lucide-react';
+import { ModelSelector } from './components/ModelSelector';
+import { X } from 'lucide-react';
 import { hasBaseUrl } from './lib/ollama';
 
 export default function Home() {
@@ -17,8 +18,8 @@ export default function Home() {
 
   const {
     models,
-    selectedModel,
-    setSelectedModel,
+    selectedModels,
+    toggleModelSelection,
     isConnected,
     isLoading,
     conversations,
@@ -77,32 +78,48 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0 bg-gradient-to-b from-background to-secondary/20">
         {/* Top Header with Model Selector */}
         <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-xl px-4 py-3 lg:px-6">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Model</span>
-              <div className="relative">
-                <select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  disabled={!isConnected || models.length === 0}
-                  className="appearance-none pl-4 pr-10 py-2.5 text-sm font-medium bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary disabled:opacity-50 cursor-pointer hover:bg-secondary transition-colors min-w-[180px]"
-                >
-                  {models.length === 0 ? (
-                    <option>No models available</option>
-                  ) : (
-                    models.map((model) => (
-                      <option key={model.name} value={model.name}>
-                        {model.name}
-                      </option>
-                    ))
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <span className="text-sm font-medium text-muted-foreground hidden sm:inline whitespace-nowrap">Models</span>
+              <ModelSelector
+                models={models}
+                selectedModels={selectedModels}
+                onToggleModel={toggleModelSelection}
+                isConnected={isConnected}
+              />
+
+              {/* Selected Models Badges */}
+              {selectedModels.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto hidden md:flex flex-shrink-0">
+                  {selectedModels.slice(0, 2).map((model) => (
+                    <div
+                      key={model}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-lg whitespace-nowrap text-xs font-medium"
+                    >
+                      <span>{model}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleModelSelection(model);
+                        }}
+                        className="hover:text-primary transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {selectedModels.length > 2 && (
+                    <div className="flex items-center px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-lg text-xs font-medium flex-shrink-0">
+                      +{selectedModels.length - 2} more
+                    </div>
                   )}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
+                </div>
+              )}
             </div>
-            <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium ${isConnected
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-red-500/10 text-red-600 dark:text-red-400'
+
+            <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap flex-shrink-0 ${isConnected
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              : 'bg-red-500/10 text-red-600 dark:text-red-400'
               }`}>
               <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
               {isConnected ? 'Online' : 'Offline'}
@@ -122,7 +139,7 @@ export default function Home() {
           onSend={sendMessage}
           isLoading={isLoading}
           isConnected={isConnected}
-          selectedModel={selectedModel}
+          selectedModel={selectedModels.length > 0 ? selectedModels[0] : 'No model selected'}
         />
       </main>
 

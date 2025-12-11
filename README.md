@@ -36,6 +36,14 @@
 - **Markdown support** - Full markdown rendering with syntax highlighting
 - **Code blocks** - Copy code with one click, language detection
 - **Conversation history** - Persistent chat history saved locally
+- **Multi-model chat** - Chat with 2+ models simultaneously and compare responses
+
+### 🤖 Multi-Model Support
+- **Compare models** - Send the same prompt to multiple models at once
+- **Side-by-side responses** - View responses from different models in the same conversation
+- **Easy model switching** - Select/deselect models from a dropdown menu
+- **Model identification** - Each response is clearly labeled with the model that generated it
+- **Persistent selection** - Your selected models are saved for future sessions
 
 ### 🖼️ Vision Support
 - **Image upload** - Click or drag & drop images

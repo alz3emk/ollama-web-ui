@@ -9,6 +9,7 @@ export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
     images?: string[]; // Base64 encoded images for vision models
+    model?: string; // Which model generated this message (for assistant messages)
 }
 
 export interface ChatResponse {

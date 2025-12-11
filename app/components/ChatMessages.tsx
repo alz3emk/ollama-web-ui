@@ -99,6 +99,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                     </div>
                 )}
 
+                {/* Display model name for assistant messages */}
+                {!isUser && message.model && (
+                    <div className="text-xs text-muted-foreground mb-1.5 px-1">
+                        <span className="font-medium">🤖 {message.model}</span>
+                    </div>
+                )}
+
                 <div
                     className={`inline-block px-5 py-3.5 rounded-2xl shadow-sm ${isUser
                         ? 'bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white rounded-tr-md'
