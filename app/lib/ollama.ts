@@ -21,15 +21,11 @@ export interface ChatResponse {
 
 const STORAGE_KEY = 'ollama_base_url';
 
-// NOTE: The actual Ollama URL is stored on the BACKEND ONLY
-// This is ONLY used for display purposes in the UI (settings, etc.)
-// All actual requests go through the /api/ollama/* proxy endpoints
 export function getBaseUrl(): string {
     if (typeof window !== 'undefined') {
-        // This is just for display/reference - NOT used for actual requests
-        return localStorage.getItem(STORAGE_KEY) || 'http://localhost:11434';
+        return localStorage.getItem(STORAGE_KEY) || '';
     }
-    return 'http://localhost:11434';
+    return '';
 }
 
 export function setBaseUrl(url: string): void {
@@ -39,19 +35,22 @@ export function setBaseUrl(url: string): void {
 }
 
 export function hasBaseUrl(): boolean {
-    // Always return true - the backend handles the URL via environment variables
-    return true;
-}
-
-export function hasEnvUrl(): boolean {
-    // Always return true - the backend handles the URL via environment variables
-    return true;
+    if (typeof window !== 'undefined') {
+        const url = localStorage.getItem(STORAGE_KEY);
+        return !!url && url.trim().length > 0;
+    }
+    return false;
 }
 
 export async function fetchModels(): Promise<OllamaModel[]> {
     try {
-        // ALWAYS use the backend proxy endpoint
-        const response = await fetch('/api/ollama/tags');
+        const baseUrl = getBaseUrl();
+        // Use the backend proxy endpoint with the stored URL in header
+        const response = await fetch('/api/ollama/tags', {
+            headers: {
+                'x-ollama-url': baseUrl,
+            },
+        });
         if (!response.ok) throw new Error('Failed to fetch models');
         const data = await response.json();
         return data.models || [];
@@ -86,6 +85,7 @@ export async function* streamChat(
     model: string,
     messages: ChatMessage[]
 ): AsyncGenerator<string, void, unknown> {
+    const baseUrl = getBaseUrl();
     // Format messages for Ollama API (include images if present)
     const formattedMessages = messages.map(msg => ({
         role: msg.role,
@@ -93,11 +93,12 @@ export async function* streamChat(
         ...(msg.images && msg.images.length > 0 ? { images: msg.images } : {}),
     }));
 
-    // ALWAYS use the backend proxy endpoint
+    // Use the backend proxy endpoint with the stored URL in header
     const response = await fetch('/api/ollama/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'x-ollama-url': baseUrl,
         },
         body: JSON.stringify({
             model,
@@ -137,8 +138,13 @@ export async function* streamChat(
 
 export async function checkConnection(): Promise<boolean> {
     try {
-        // ALWAYS use the backend proxy endpoint
-        const response = await fetch('/api/ollama/tags');
+        const baseUrl = getBaseUrl();
+        // Use the backend proxy endpoint with the stored URL in header
+        const response = await fetch('/api/ollama/tags', {
+            headers: {
+                'x-ollama-url': baseUrl,
+            },
+        });
         return response.ok;
     } catch {
         return false;

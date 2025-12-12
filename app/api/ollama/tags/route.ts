@@ -1,24 +1,33 @@
 export async function GET(request: Request) {
     try {
-        // Try multiple sources for the Ollama URL
-        const ollamaUrl =
-            process.env.NEXT_PUBLIC_OLLAMA_URL ||
-            process.env.OLLAMA_URL ||
-            'http://localhost:11434';
+        // Get the Ollama URL from the request header (sent by the client from localStorage)
+        const ollamaUrl = request.headers.get('x-ollama-url');
 
-        console.log('[/api/ollama/tags] Attempting to fetch from:', ollamaUrl);
+        if (!ollamaUrl) {
+            return Response.json(
+                { error: 'Ollama URL not configured. Please complete the setup.', models: [] },
+                { status: 200 }
+            );
+        }
+
+        // Ensure no trailing slash
+        const cleanUrl = ollamaUrl.replace(/\/$/, '');
+
+        console.log('[/api/ollama/tags] Attempting to fetch from:', cleanUrl);
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
         try {
-            const response = await fetch(`${ollamaUrl}/api/tags`, {
+            const fetchOptions: RequestInit = {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 signal: controller.signal,
-            });
+            };
+
+            const response = await fetch(`${cleanUrl}/api/tags`, fetchOptions);
 
             clearTimeout(timeout);
 
@@ -26,7 +35,7 @@ export async function GET(request: Request) {
                 console.error(`[/api/ollama/tags] Ollama returned ${response.status}`);
                 return Response.json(
                     { error: `Ollama server error: ${response.status}`, models: [] },
-                    { status: 200 } // Return 200 so UI doesn't show error
+                    { status: 200 }
                 );
             }
 
@@ -47,23 +56,35 @@ export async function GET(request: Request) {
                 console.error('[/api/ollama/tags] Request timeout after 10 seconds');
                 return Response.json(
                     {
-                        error: 'Ollama server timeout. Make sure Ollama is running and accessible at: ' + ollamaUrl,
+                        error: 'Ollama server timeout. Make sure Ollama is running and accessible at: ' + cleanUrl,
                         models: []
                     },
                     { status: 200 }
                 );
             }
 
-            console.error('[/api/ollama/tags] Connection error:', fetchError.code || fetchError.message);
+            console.error('[/api/ollama/tags] Connection error:', {
+                code: fetchError.code,
+                message: fetchError.message,
+                cause: fetchError.cause?.message,
+            });
 
-            // Return helpful error message
-            const errorMessage = fetchError.code === 'ECONNREFUSED'
-                ? `Cannot connect to Ollama server at ${ollamaUrl}. Make sure Ollama is running: ollama serve`
-                : `Connection error: ${fetchError.message}`;
+            // Provide more detailed error messages
+            let errorMessage = `Connection error: ${fetchError.message}`;
+
+            if (fetchError.code === 'ECONNREFUSED') {
+                errorMessage = `Cannot connect to Ollama at ${cleanUrl}. Server refused connection. Make sure Ollama is running: ollama serve`;
+            } else if (fetchError.code === 'ENOTFOUND') {
+                errorMessage = `Cannot resolve hostname in ${cleanUrl}. Check the URL is correct.`;
+            } else if (fetchError.message?.includes('certificate')) {
+                errorMessage = `SSL certificate error for ${cleanUrl}. If using self-signed certificates, the server may need certificate configuration.`;
+            } else if (fetchError.message?.includes('ERR_TLS_CERT_ALTNAME_INVALID')) {
+                errorMessage = `SSL certificate name mismatch for ${cleanUrl}. The certificate doesn't match the hostname.`;
+            }
 
             return Response.json(
                 { error: errorMessage, models: [] },
-                { status: 200 } // Return 200 so UI doesn't show error
+                { status: 200 }
             );
         }
     } catch (error: any) {
@@ -80,7 +101,7 @@ export async function OPTIONS() {
         headers: {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Headers': 'Content-Type, x-ollama-url',
         },
     });
 }

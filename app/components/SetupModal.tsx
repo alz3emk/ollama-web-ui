@@ -26,19 +26,23 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
         setErrorMessage('');
 
         try {
+            // Store the URL locally first so backend can use it
+            const cleanUrl = url.trim().replace(/\/$/, '');
+            setBaseUrl(cleanUrl);
+
             // Test the connection through the backend proxy
             // This validates that the backend can reach the Ollama server
             const response = await fetch('/api/ollama/tags');
-            
+
             if (!response.ok) {
                 const data = await response.json();
                 setTestStatus('error');
-                setErrorMessage(data.error || 'Failed to connect through proxy. Make sure the URL is configured on the backend.');
+                setErrorMessage(data.error || 'Failed to connect to Ollama server. Make sure the URL is correct and Ollama is running.');
                 return;
             }
 
             const data = await response.json();
-            
+
             if (data.error) {
                 setTestStatus('error');
                 setErrorMessage(data.error);
@@ -57,8 +61,7 @@ export function SetupModal({ isOpen, onComplete }: SetupModalProps) {
             await handleTest();
             return;
         }
-        // Store the URL for display only
-        setBaseUrl(url.trim().replace(/\/$/, ''));
+        // URL is already stored from the test
         onComplete();
     };
 
